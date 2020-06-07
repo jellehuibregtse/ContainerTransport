@@ -30,6 +30,25 @@ namespace ContainerTransport
             return true;
         }
 
+        private bool TooMuchWeight(Container referenceContainer)
+        {
+            var tempList = _containers;
+            tempList.Add(referenceContainer);
+            SortStack(tempList);
+
+            foreach (var container in tempList)
+            {
+                var index = tempList.FindIndex(c => c == container);
+                var weightOnContainer = tempList.Where(c => tempList.FindIndex(i => i == container) > index)
+                    .Sum(c => container.Weight);
+
+                if (weightOnContainer > Container.MaxWeightOnTop)
+                    return false;
+            }
+
+            return true;
+        }
+
         public static void SortStack(List<Container> containers)
         {
             var valuable = containers.Find(container =>
