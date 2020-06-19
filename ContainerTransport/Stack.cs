@@ -6,6 +6,8 @@ namespace ContainerTransport
 {
     public class Stack
     {
+        private const int MaxWeight = 150000;
+
         private readonly List<Container> _containers = new List<Container>();
         public IEnumerable<Container> Containers => _containers;
 
@@ -14,58 +16,76 @@ namespace ContainerTransport
 
         public bool IsFirstRow { get; set; }
 
+        public bool IsLastRow { get; set; }
+
         private bool IsValuableInStack => _containers.Any(container =>
             container.Type == ContainerType.Valuable || container.Type == ContainerType.CooledValuable);
 
         public bool AddContainer(Container container)
         {
-            if (!IsFirstRow &&
-                (container.Type == ContainerType.Cooled || container.Type == ContainerType.CooledValuable))
-                return false;
-
-            if (IsValuableInStack && (container.Type == ContainerType.Valuable ||
-                                      container.Type == ContainerType.CooledValuable)) return false;
-
-            SortStack(_containers);
-            return true;
-        }
-
-        private bool TooMuchWeight(Container referenceContainer)
-        {
-            var tempList = _containers;
-            tempList.Add(referenceContainer);
-            SortStack(tempList);
-
-            foreach (var container in tempList)
+            return container.Type switch
             {
-                var index = tempList.FindIndex(c => c == container);
-                var weightOnContainer = tempList.Where(c => tempList.FindIndex(i => i == container) > index)
-                    .Sum(c => container.Weight);
-
-                if (weightOnContainer > Container.MaxWeightOnTop)
-                    return false;
-            }
-
-            return true;
+                ContainerType.Normal => AddNormalContainer(container),
+                ContainerType.Cooled => AddCooledContainer(container),
+                ContainerType.Valuable => AddValuableContainer(container),
+                ContainerType.CooledValuable => AddCooledValuableContainer(container),
+                _ => false
+            };
         }
 
-        public static void SortStack(List<Container> containers)
+        public void SortStack()
         {
-            var valuable = containers.Find(container =>
+            var valuable = _containers.FirstOrDefault(container =>
                 container.Type == ContainerType.Valuable || container.Type == ContainerType.CooledValuable);
 
-            var tempList = containers;
-            tempList.Remove(valuable);
+            _containers.Remove(valuable);
+            _containers.OrderByDescending(container => container.Weight);
+            _containers.Add(valuable);
+        }
+
+        private bool AddNormalContainer(Container container)
+        {
+            if (TooHeavy(container)) return false;
             
-            containers.Clear();
+            _containers.Add(container);
+            return true;
+        }
 
-            foreach (var container in containers)
-                containers.Remove(container);
+        private bool AddCooledContainer(Container container)
+        {
+            if (TooHeavy(container)) return false;
 
-            var sortedTempList = tempList.OrderByDescending(container => container.Weight).ToList();
-            sortedTempList.Add(valuable);
+            if (!IsFirstRow) return false;
+            
+            _containers.Add(container);
+            return true;
+        }
 
-            containers.AddRange(sortedTempList);
+        private bool AddValuableContainer(Container container)
+        {
+            if (TooHeavy(container)) return false;
+
+            if (IsValuableInStack) return false;
+
+            if (!IsFirstRow && !IsLastRow) return false;
+
+            _containers.Add(container);
+            return true;        }
+
+        private bool AddCooledValuableContainer(Container container)
+        {
+            if (TooHeavy(container)) return false;
+
+            if (IsValuableInStack) return false;
+
+            if (!IsFirstRow && !IsLastRow) return false;
+
+            _containers.Add(container);
+            return true;        }
+
+        private bool TooHeavy(Container container)
+        {
+            return Weight + container.Weight > MaxWeight;
         }
     }
 }

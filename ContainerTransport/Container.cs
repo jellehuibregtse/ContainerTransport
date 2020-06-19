@@ -4,7 +4,6 @@ namespace ContainerTransport
 {
     public class Container
     {
-        public static int MaxWeightOnTop = 120000;
         private const int MaxWeight = 30000;
         private const int EmptyWeight = 4000;
 
